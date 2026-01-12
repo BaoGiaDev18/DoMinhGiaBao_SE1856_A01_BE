@@ -1,8 +1,11 @@
-using DoMinhGiaBao_SE1856_A01_Service.DTOs;
 using DoMinhGiaBao_SE1856_A01_Service.Services;
+using DoMinhGiaBao__SE1856_A01_BE.Mappers;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Requests;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
@@ -27,58 +30,106 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// S? d?ng query parameter 'status' ?? filter
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll([FromQuery] string? status = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryListResponse>>>> GetAll([FromQuery] string? status = null)
         {
             if (status?.ToLower() == "active")
             {
-                var activeCategories = await _categoryService.GetActiveCategoriesAsync();
-                return Ok(activeCategories);
+                var dtos = await _categoryService.GetActiveCategoriesAsync();
+                var responses = dtos.Select(dto => dto.ToListResponse()).ToList();
+                return Ok(ApiResponse<IEnumerable<CategoryListResponse>>.SuccessResponse(
+                    responses,
+                    $"Found {responses.Count} active categories"
+                ));
             }
 
-            var categories = await _categoryService.GetAllCategoriesAsync();
-            return Ok(categories);
+            var allDtos = await _categoryService.GetAllCategoriesAsync();
+            var allResponses = allDtos.Select(dto => dto.ToListResponse()).ToList();
+            return Ok(ApiResponse<IEnumerable<CategoryListResponse>>.SuccessResponse(
+                allResponses,
+                $"Retrieved {allResponses.Count} categories"
+            ));
         }
 
         /// <summary>
         /// RESTful: GET /api/categories/{id}
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryDto>> GetById(short id)
+        public async Task<ActionResult<ApiResponse<CategoryResponse>>> GetById(short id)
         {
-            var category = await _categoryService.GetCategoryByIdAsync(id);
-            if (category == null)
+            var dto = await _categoryService.GetCategoryByIdAsync(id);
+            if (dto == null)
             {
-                return NotFound(new { message = "Category not found" });
+                return NotFound(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Category not found",
+                    $"No category found with ID: {id}"
+                ));
             }
-            return Ok(category);
+            
+            var response = dto.ToResponse();
+            return Ok(ApiResponse<CategoryResponse>.SuccessResponse(
+                response,
+                "Category retrieved successfully"
+            ));
         }
 
         [HttpPost]
-        public async Task<ActionResult<CategoryDto>> Create([FromBody] CreateCategoryDto createDto)
+        public async Task<ActionResult<ApiResponse<CategoryResponse>>> Create([FromBody] CreateCategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
-            var category = await _categoryService.CreateCategoryAsync(createDto);
-            return CreatedAtAction(nameof(GetById), new { id = category.CategoryId }, category);
+            var createDto = request.ToCreateDto();
+            var dto = await _categoryService.CreateCategoryAsync(createDto);
+            var response = dto.ToResponse();
+            
+            return CreatedAtAction(
+                nameof(GetById), 
+                new { id = response.CategoryId }, 
+                ApiResponse<CategoryResponse>.SuccessResponse(
+                    response,
+                    "Category created successfully"
+                )
+            );
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<CategoryDto>> Update(short id, [FromBody] UpdateCategoryDto updateDto)
+        public async Task<ActionResult<ApiResponse<CategoryResponse>>> Update(short id, [FromBody] UpdateCategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
-            var category = await _categoryService.UpdateCategoryAsync(id, updateDto);
-            if (category == null)
+            var updateDto = request.ToUpdateDto();
+            var dto = await _categoryService.UpdateCategoryAsync(id, updateDto);
+            
+            if (dto == null)
             {
-                return NotFound(new { message = "Category not found" });
+                return NotFound(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Category not found",
+                    $"No category found with ID: {id}"
+                ));
             }
-            return Ok(category);
+            
+            var response = dto.ToResponse();
+            return Ok(ApiResponse<CategoryResponse>.SuccessResponse(
+                response,
+                "Category updated successfully"
+            ));
         }
 
         /// <summary>
@@ -86,7 +137,7 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// S? d?ng query parameter 'validate' ?? ch? ki?m tra
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(short id, [FromQuery] bool validate = false)
+        public async Task<ActionResult<ApiResponse>> Delete(short id, [FromQuery] bool validate = false)
         {
             // N?u ch? validate, tr? v? k?t qu? ki?m tra
             if (validate)
@@ -107,13 +158,22 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 var result = await _categoryService.DeleteCategoryAsync(id);
                 if (!result)
                 {
-                    return NotFound(new { message = "Category not found" });
+                    return NotFound(ApiResponse.ErrorResponse(
+                        "Category not found",
+                        $"No category found with ID: {id}"
+                    ));
                 }
-                return Ok(new { message = "Category deleted successfully" });
+                
+                return Ok(ApiResponse.SuccessResponse(
+                    "Category deleted successfully"
+                ));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse.ErrorResponse(
+                    "Failed to delete category",
+                    ex.Message
+                ));
             }
         }
     }

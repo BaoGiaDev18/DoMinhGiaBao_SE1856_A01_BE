@@ -1,8 +1,11 @@
-using DoMinhGiaBao_SE1856_A01_Service.DTOs;
 using DoMinhGiaBao_SE1856_A01_Service.Services;
+using DoMinhGiaBao__SE1856_A01_BE.Mappers;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Requests;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
@@ -27,71 +30,125 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// S? d?ng query parameter 'q' ?? search
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SystemAccountDto>>> GetAll([FromQuery] string? q = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<SystemAccountListResponse>>>> GetAll([FromQuery] string? q = null)
         {
             if (!string.IsNullOrWhiteSpace(q))
             {
-                var searchResults = await _accountService.SearchAccountsAsync(q);
-                return Ok(searchResults);
+                var searchDtos = await _accountService.SearchAccountsAsync(q);
+                var searchResponses = searchDtos.Select(dto => dto.ToListResponse()).ToList();
+                return Ok(ApiResponse<IEnumerable<SystemAccountListResponse>>.SuccessResponse(
+                    searchResponses,
+                    $"Found {searchResponses.Count} accounts matching '{q}'"
+                ));
             }
 
-            var accounts = await _accountService.GetAllAccountsAsync();
-            return Ok(accounts);
+            var dtos = await _accountService.GetAllAccountsAsync();
+            var responses = dtos.Select(dto => dto.ToListResponse()).ToList();
+            return Ok(ApiResponse<IEnumerable<SystemAccountListResponse>>.SuccessResponse(
+                responses,
+                $"Retrieved {responses.Count} accounts"
+            ));
         }
 
         /// <summary>
         /// RESTful: GET /api/system-accounts/{id}
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<SystemAccountDto>> GetById(short id)
+        public async Task<ActionResult<ApiResponse<SystemAccountResponse>>> GetById(short id)
         {
-            var account = await _accountService.GetAccountByIdAsync(id);
-            if (account == null)
+            var dto = await _accountService.GetAccountByIdAsync(id);
+            if (dto == null)
             {
-                return NotFound(new { message = "Account not found" });
+                return NotFound(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                    "Account not found",
+                    $"No account found with ID: {id}"
+                ));
             }
-            return Ok(account);
+            
+            var response = dto.ToResponse();
+            return Ok(ApiResponse<SystemAccountResponse>.SuccessResponse(
+                response,
+                "Account retrieved successfully"
+            ));
         }
 
         [HttpPost]
-        public async Task<ActionResult<SystemAccountDto>> Create([FromBody] CreateSystemAccountDto createDto)
+        public async Task<ActionResult<ApiResponse<SystemAccountResponse>>> Create([FromBody] CreateSystemAccountRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
             try
             {
-                var account = await _accountService.CreateAccountAsync(createDto);
-                return CreatedAtAction(nameof(GetById), new { id = account.AccountId }, account);
+                var createDto = request.ToCreateDto();
+                var dto = await _accountService.CreateAccountAsync(createDto);
+                var response = dto.ToResponse();
+                
+                return CreatedAtAction(
+                    nameof(GetById), 
+                    new { id = response.AccountId }, 
+                    ApiResponse<SystemAccountResponse>.SuccessResponse(
+                        response,
+                        "Account created successfully"
+                    )
+                );
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                    "Failed to create account",
+                    ex.Message
+                ));
             }
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<SystemAccountDto>> Update(short id, [FromBody] UpdateSystemAccountDto updateDto)
+        public async Task<ActionResult<ApiResponse<SystemAccountResponse>>> Update(short id, [FromBody] UpdateSystemAccountRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
             try
             {
-                var account = await _accountService.UpdateAccountAsync(id, updateDto);
-                if (account == null)
+                var updateDto = request.ToUpdateDto();
+                var dto = await _accountService.UpdateAccountAsync(id, updateDto);
+                
+                if (dto == null)
                 {
-                    return NotFound(new { message = "Account not found" });
+                    return NotFound(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                        "Account not found",
+                        $"No account found with ID: {id}"
+                    ));
                 }
-                return Ok(account);
+                
+                var response = dto.ToResponse();
+                return Ok(ApiResponse<SystemAccountResponse>.SuccessResponse(
+                    response,
+                    "Account updated successfully"
+                ));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<SystemAccountResponse>.ErrorResponse(
+                    "Failed to update account",
+                    ex.Message
+                ));
             }
         }
 
@@ -100,7 +157,7 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// S? d?ng query parameter 'validate' ?? ch? ki?m tra, không xóa th?t
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(short id, [FromQuery] bool validate = false)
+        public async Task<ActionResult<ApiResponse>> Delete(short id, [FromQuery] bool validate = false)
         {
             // N?u ch? validate, tr? v? k?t qu? ki?m tra
             if (validate)
@@ -121,13 +178,22 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 var result = await _accountService.DeleteAccountAsync(id);
                 if (!result)
                 {
-                    return NotFound(new { message = "Account not found" });
+                    return NotFound(ApiResponse.ErrorResponse(
+                        "Account not found",
+                        $"No account found with ID: {id}"
+                    ));
                 }
-                return Ok(new { message = "Account deleted successfully" });
+                
+                return Ok(ApiResponse.SuccessResponse(
+                    "Account deleted successfully"
+                ));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse.ErrorResponse(
+                    "Failed to delete account",
+                    ex.Message
+                ));
             }
         }
     }
