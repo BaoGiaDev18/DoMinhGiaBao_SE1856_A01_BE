@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # ==================== SQL Server Database ====================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: funews-sqlserver-prod
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SA_PASSWORD:-YourStrong@Password123}
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-prod-data:/var/opt/mssql
+    networks:
+      - funews-network
+    restart: always
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${SQL_SA_PASSWORD:-YourStrong@Password123} -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ==================== Backend API ====================
+  api:
+    build:
+      context: .
+      dockerfile: DoMinhGiaBao_ SE1856_A01_BE/Dockerfile
+    container_name: funews-api-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=FUNewsManagement;User Id=sa;Password=${SQL_SA_PASSWORD:-YourStrong@Password123};TrustServerCertificate=True;
+      - AdminAccount__Email=admin@FUNewsManagementSystem.org
+      - AdminAccount__Password=@@abc123@@
+      - AdminAccount__Role=0
+    ports:
+      - "80:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - funews-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ==================== Volumes ====================
+volumes:
+  sqlserver-prod-data:
+    driver: local
+
+# ==================== Networks ====================
+networks:
+  funews-network:
+    driver: bridge
