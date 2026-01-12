@@ -1,6 +1,9 @@
-using DoMinhGiaBao_SE1856_A01_Service.DTOs;
 using DoMinhGiaBao_SE1856_A01_Service.Services;
+using DoMinhGiaBao__SE1856_A01_BE.Mappers;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Requests;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
@@ -21,21 +24,30 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto loginRequest)
+        public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(new LoginResponse
+                {
+                    Success = false,
+                    Message = "Validation failed: " + string.Join(", ", errors)
+                });
             }
 
-            var result = await _authService.LoginAsync(loginRequest);
+            var loginDto = request.ToDto();
+            var serviceResult = await _authService.LoginAsync(loginDto);
+            var response = serviceResult.ToResponse();
 
-            if (!result.Success)
+            if (!response.Success)
             {
-                return Unauthorized(result);
+                return Unauthorized(response);
             }
 
-            return Ok(result);
+            return Ok(response);
         }
     }
 }

@@ -1,8 +1,11 @@
-using DoMinhGiaBao_SE1856_A01_Service.DTOs;
 using DoMinhGiaBao_SE1856_A01_Service.Services;
+using DoMinhGiaBao__SE1856_A01_BE.Mappers;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Requests;
+using DoMinhGiaBao__SE1856_A01_BE.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
@@ -30,7 +33,7 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// Có th? k?t h?p: ?status=active&createdBy=1
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<NewsArticleDto>>> GetAll(
+        public async Task<ActionResult<ApiResponse<IEnumerable<NewsArticleListResponse>>>> GetAll(
             [FromQuery] string? status = null,
             [FromQuery] short? createdBy = null,
             [FromQuery] DateTime? startDate = null,
@@ -39,87 +42,153 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
             // N?u có startDate và endDate, tr? v? report
             if (startDate.HasValue && endDate.HasValue)
             {
-                var report = await _newsArticleService.GetNewsArticleReportAsync(startDate.Value, endDate.Value);
-                return Ok(report);
+                var reportDtos = await _newsArticleService.GetNewsArticleReportAsync(startDate.Value, endDate.Value);
+                var reportResponses = reportDtos.Select(dto => dto.ToReportResponse()).ToList();
+                return Ok(ApiResponse<IEnumerable<NewsArticleReportResponse>>.SuccessResponse(
+                    reportResponses, 
+                    "Report generated successfully"
+                ));
             }
 
             // L?y theo createdBy
             if (createdBy.HasValue)
             {
-                var articlesByCreator = await _newsArticleService.GetNewsArticlesByCreatorAsync(createdBy.Value);
-                return Ok(articlesByCreator);
+                var dtos = await _newsArticleService.GetNewsArticlesByCreatorAsync(createdBy.Value);
+                var responses = dtos.Select(dto => dto.ToListResponse()).ToList();
+                return Ok(ApiResponse<IEnumerable<NewsArticleListResponse>>.SuccessResponse(
+                    responses,
+                    $"Found {responses.Count} articles by creator {createdBy}"
+                ));
             }
 
             // L?y theo status
             if (status?.ToLower() == "active")
             {
-                var activeArticles = await _newsArticleService.GetActiveNewsArticlesAsync();
-                return Ok(activeArticles);
+                var dtos = await _newsArticleService.GetActiveNewsArticlesAsync();
+                var responses = dtos.Select(dto => dto.ToListResponse()).ToList();
+                return Ok(ApiResponse<IEnumerable<NewsArticleListResponse>>.SuccessResponse(
+                    responses,
+                    $"Found {responses.Count} active articles"
+                ));
             }
 
             // L?y t?t c?
-            var articles = await _newsArticleService.GetAllNewsArticlesAsync();
-            return Ok(articles);
+            var allDtos = await _newsArticleService.GetAllNewsArticlesAsync();
+            var allResponses = allDtos.Select(dto => dto.ToListResponse()).ToList();
+            return Ok(ApiResponse<IEnumerable<NewsArticleListResponse>>.SuccessResponse(
+                allResponses,
+                $"Retrieved {allResponses.Count} articles"
+            ));
         }
 
         /// <summary>
         /// RESTful: GET /api/news-articles/{id}
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<NewsArticleDto>> GetById(string id)
+        public async Task<ActionResult<ApiResponse<NewsArticleResponse>>> GetById(string id)
         {
-            var article = await _newsArticleService.GetNewsArticleByIdAsync(id);
-            if (article == null)
+            var dto = await _newsArticleService.GetNewsArticleByIdAsync(id);
+            if (dto == null)
             {
-                return NotFound(new { message = "News article not found" });
+                return NotFound(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "News article not found",
+                    $"No article found with ID: {id}"
+                ));
             }
-            return Ok(article);
+            
+            var response = dto.ToResponse();
+            return Ok(ApiResponse<NewsArticleResponse>.SuccessResponse(
+                response,
+                "Article retrieved successfully"
+            ));
         }
 
         [HttpPost]
-        public async Task<ActionResult<NewsArticleDto>> Create([FromBody] CreateNewsArticleDto createDto, [FromQuery] short createdById)
+        public async Task<ActionResult<ApiResponse<NewsArticleResponse>>> Create([FromBody] CreateNewsArticleRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
             try
             {
-                var article = await _newsArticleService.CreateNewsArticleAsync(createDto, createdById);
-                return CreatedAtAction(nameof(GetById), new { id = article.NewsArticleId }, article);
+                var createDto = request.ToCreateDto();
+                var dto = await _newsArticleService.CreateNewsArticleAsync(createDto, request.CreatedById);
+                var response = dto.ToResponse();
+                
+                return CreatedAtAction(
+                    nameof(GetById), 
+                    new { id = response.NewsArticleId }, 
+                    ApiResponse<NewsArticleResponse>.SuccessResponse(
+                        response,
+                        "Article created successfully"
+                    )
+                );
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "Failed to create article",
+                    ex.Message
+                ));
             }
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<NewsArticleDto>> Update(string id, [FromBody] UpdateNewsArticleDto updateDto, [FromQuery] short updatedById)
+        public async Task<ActionResult<ApiResponse<NewsArticleResponse>>> Update(string id, [FromBody] UpdateNewsArticleRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+                return BadRequest(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "Validation failed",
+                    errors
+                ));
             }
 
-            var article = await _newsArticleService.UpdateNewsArticleAsync(id, updateDto, updatedById);
-            if (article == null)
+            var updateDto = request.ToUpdateDto();
+            var dto = await _newsArticleService.UpdateNewsArticleAsync(id, updateDto, request.UpdatedById);
+            
+            if (dto == null)
             {
-                return NotFound(new { message = "News article not found" });
+                return NotFound(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "News article not found",
+                    $"No article found with ID: {id}"
+                ));
             }
-            return Ok(article);
+            
+            var response = dto.ToResponse();
+            return Ok(ApiResponse<NewsArticleResponse>.SuccessResponse(
+                response,
+                "Article updated successfully"
+            ));
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(string id)
+        public async Task<ActionResult<ApiResponse>> Delete(string id)
         {
             var result = await _newsArticleService.DeleteNewsArticleAsync(id);
+            
             if (!result)
             {
-                return NotFound(new { message = "News article not found" });
+                return NotFound(ApiResponse.ErrorResponse(
+                    "News article not found",
+                    $"No article found with ID: {id}"
+                ));
             }
-            return Ok(new { message = "News article deleted successfully" });
+            
+            return Ok(ApiResponse.SuccessResponse(
+                "Article deleted successfully"
+            ));
         }
     }
 }
