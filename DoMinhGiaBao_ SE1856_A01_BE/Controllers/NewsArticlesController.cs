@@ -155,22 +155,32 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 ));
             }
 
-            var updateDto = request.ToUpdateDto();
-            var dto = await _newsArticleService.UpdateNewsArticleAsync(id, updateDto, request.UpdatedById);
-            
-            if (dto == null)
+            try
             {
-                return NotFound(ApiResponse<NewsArticleResponse>.ErrorResponse(
-                    "News article not found",
-                    $"No article found with ID: {id}"
+                var updateDto = request.ToUpdateDto();
+                var dto = await _newsArticleService.UpdateNewsArticleAsync(id, updateDto, request.UpdatedById);
+                
+                if (dto == null)
+                {
+                    return NotFound(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                        "News article not found",
+                        $"No article found with ID: {id}"
+                    ));
+                }
+                
+                var response = dto.ToResponse();
+                return Ok(ApiResponse<NewsArticleResponse>.SuccessResponse(
+                    response,
+                    "Article updated successfully"
                 ));
             }
-            
-            var response = dto.ToResponse();
-            return Ok(ApiResponse<NewsArticleResponse>.SuccessResponse(
-                response,
-                "Article updated successfully"
-            ));
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<NewsArticleResponse>.ErrorResponse(
+                    "Failed to update article",
+                    ex.Message
+                ));
+            }
         }
 
         [HttpDelete("{id}")]

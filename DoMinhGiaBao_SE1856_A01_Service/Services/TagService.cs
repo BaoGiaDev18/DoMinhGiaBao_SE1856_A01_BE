@@ -43,14 +43,8 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
 
         public async Task<TagDto> CreateTagAsync(CreateTagDto createDto)
         {
-            // Get the maximum TagId
-            var maxId = await _unitOfWork.Tags
-                .GetQueryable()
-                .MaxAsync(t => (int?)t.TagId) ?? 0;
-
             var tag = new Tag
             {
-                TagId = maxId + 1,
                 TagName = createDto.TagName,
                 Note = createDto.Note
             };

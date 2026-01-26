@@ -86,18 +86,28 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 ));
             }
 
-            var createDto = request.ToCreateDto();
-            var dto = await _categoryService.CreateCategoryAsync(createDto);
-            var response = dto.ToResponse();
-            
-            return CreatedAtAction(
-                nameof(GetById), 
-                new { id = response.CategoryId }, 
-                ApiResponse<CategoryResponse>.SuccessResponse(
-                    response,
-                    "Category created successfully"
-                )
-            );
+            try
+            {
+                var createDto = request.ToCreateDto();
+                var dto = await _categoryService.CreateCategoryAsync(createDto);
+                var response = dto.ToResponse();
+                
+                return CreatedAtAction(
+                    nameof(GetById), 
+                    new { id = response.CategoryId }, 
+                    ApiResponse<CategoryResponse>.SuccessResponse(
+                        response,
+                        "Category created successfully"
+                    )
+                );
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Failed to create category",
+                    ex.Message
+                ));
+            }
         }
 
         [HttpPut("{id}")]
@@ -114,22 +124,32 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 ));
             }
 
-            var updateDto = request.ToUpdateDto();
-            var dto = await _categoryService.UpdateCategoryAsync(id, updateDto);
-            
-            if (dto == null)
+            try
             {
-                return NotFound(ApiResponse<CategoryResponse>.ErrorResponse(
-                    "Category not found",
-                    $"No category found with ID: {id}"
+                var updateDto = request.ToUpdateDto();
+                var dto = await _categoryService.UpdateCategoryAsync(id, updateDto);
+                
+                if (dto == null)
+                {
+                    return NotFound(ApiResponse<CategoryResponse>.ErrorResponse(
+                        "Category not found",
+                        $"No category found with ID: {id}"
+                    ));
+                }
+                
+                var response = dto.ToResponse();
+                return Ok(ApiResponse<CategoryResponse>.SuccessResponse(
+                    response,
+                    "Category updated successfully"
                 ));
             }
-            
-            var response = dto.ToResponse();
-            return Ok(ApiResponse<CategoryResponse>.SuccessResponse(
-                response,
-                "Category updated successfully"
-            ));
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
+                    "Failed to update category",
+                    ex.Message
+                ));
+            }
         }
 
         /// <summary>

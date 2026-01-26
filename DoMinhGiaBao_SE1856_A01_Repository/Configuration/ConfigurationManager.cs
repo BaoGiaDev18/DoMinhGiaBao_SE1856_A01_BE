@@ -13,19 +13,13 @@ namespace DoMinhGiaBao_SE1856_A01_Repository.Configuration
         private static readonly object _lock = new object();
         private readonly IConfiguration _configuration;
 
-        /// <summary>
-        /// Private constructor ?? ng?n vi?c t?o instance t? bên ngoài
-        /// ?ây là ?i?m c?t lõi c?a Singleton Pattern
-        /// </summary>
+
         private ConfigurationManager(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        /// <summary>
-        /// Thread-safe Singleton instance
-        /// S? d?ng Double-Check Locking pattern ?? t?i ?u performance
-        /// </summary>
+
         public static ConfigurationManager Instance
         {
             get
@@ -39,10 +33,7 @@ namespace DoMinhGiaBao_SE1856_A01_Repository.Configuration
             }
         }
 
-        /// <summary>
-        /// Kh?i t?o Singleton instance (g?i 1 l?n duy nh?t trong Program.cs)
-        /// Thread-safe v?i Double-Check Locking
-        /// </summary>
+
         /// <param name="configuration">IConfiguration t? ASP.NET Core DI</param>
         public static void Initialize(IConfiguration configuration)
         {
@@ -113,9 +104,7 @@ namespace DoMinhGiaBao_SE1856_A01_Repository.Configuration
             return _configuration[key];
         }
 
-        /// <summary>
-        /// L?y giá tr? c?u hình v?i default value
-        /// </summary>
+
         /// <param name="key">Configuration key</param>
         /// <param name="defaultValue">Default value n?u không tìm th?y</param>
         /// <returns>Configuration value ho?c default value</returns>

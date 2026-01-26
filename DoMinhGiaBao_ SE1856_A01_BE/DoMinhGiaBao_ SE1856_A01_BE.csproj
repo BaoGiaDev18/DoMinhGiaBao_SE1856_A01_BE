@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Docs\**" />
+    <Content Remove="Docs\**" />
+    <EmbeddedResource Remove="Docs\**" />
+    <None Remove="Docs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="8.2.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -18,10 +25,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DoMinhGiaBao_SE1856_A01_Service\DoMinhGiaBao_SE1856_A01_Service.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Docs\" />
   </ItemGroup>
 
 </Project>

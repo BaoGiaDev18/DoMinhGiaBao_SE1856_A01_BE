@@ -4,6 +4,7 @@ using DoMinhGiaBao_SE1856_A01_Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoMinhGiaBao_SE1856_A01_Repository.Migrations
 {
     [DbContext(typeof(FUNewsManagementContext))]
-    partial class FUNewsManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260115035005_FixNewsTagCascadeDelete")]
+    partial class FixNewsTagCascadeDelete
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

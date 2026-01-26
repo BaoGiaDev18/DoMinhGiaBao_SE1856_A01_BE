@@ -81,6 +81,24 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
                 throw new InvalidOperationException("News Article ID already exists");
             }
 
+            // Validate CategoryId
+            var categoryExists = await _unitOfWork.Categories
+                .ExistsAsync(c => c.CategoryId == createDto.CategoryId);
+            
+            if (!categoryExists)
+            {
+                throw new InvalidOperationException($"Category with ID {createDto.CategoryId} does not exist");
+            }
+
+            // Validate createdById
+            var accountExists = await _unitOfWork.SystemAccounts
+                .ExistsAsync(a => a.AccountId == createdById);
+            
+            if (!accountExists)
+            {
+                throw new InvalidOperationException($"System account with ID {createdById} does not exist");
+            }
+
             var article = new NewsArticle
             {
                 NewsArticleId = createDto.NewsArticleId,
@@ -127,6 +145,24 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
                 .FirstOrDefaultAsync(n => n.NewsArticleId == id);
 
             if (article == null) return null;
+
+            // Validate CategoryId
+            var categoryExists = await _unitOfWork.Categories
+                .ExistsAsync(c => c.CategoryId == updateDto.CategoryId);
+            
+            if (!categoryExists)
+            {
+                throw new InvalidOperationException($"Category with ID {updateDto.CategoryId} does not exist");
+            }
+
+            // Validate updatedById
+            var accountExists = await _unitOfWork.SystemAccounts
+                .ExistsAsync(a => a.AccountId == updatedById);
+            
+            if (!accountExists)
+            {
+                throw new InvalidOperationException($"System account with ID {updatedById} does not exist");
+            }
 
             article.NewsTitle = updateDto.NewsTitle;
             article.Headline = updateDto.Headline;

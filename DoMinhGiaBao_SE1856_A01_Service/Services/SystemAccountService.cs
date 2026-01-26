@@ -75,14 +75,8 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
                 throw new InvalidOperationException("Email already exists");
             }
 
-            // Get the maximum AccountId
-            var maxId = await _unitOfWork.SystemAccounts
-                .GetQueryable()
-                .MaxAsync(a => (short?)a.AccountId) ?? 0;
-
             var account = new SystemAccount
             {
-                AccountId = (short)(maxId + 1),
                 AccountName = createDto.AccountName,
                 AccountEmail = createDto.AccountEmail,
                 AccountRole = createDto.AccountRole,

@@ -63,14 +63,20 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
 
         public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto createDto)
         {
-            // Get the maximum CategoryId
-            var maxId = await _unitOfWork.Categories
-                .GetQueryable()
-                .MaxAsync(c => (short?)c.CategoryId) ?? 0;
+            // Validate ParentCategoryId if provided
+            if (createDto.ParentCategoryId.HasValue)
+            {
+                var parentExists = await _unitOfWork.Categories
+                    .ExistsAsync(c => c.CategoryId == createDto.ParentCategoryId.Value);
+                
+                if (!parentExists)
+                {
+                    throw new InvalidOperationException($"Parent category with ID {createDto.ParentCategoryId.Value} does not exist");
+                }
+            }
 
             var category = new Category
             {
-                CategoryId = (short)(maxId + 1),
                 CategoryName = createDto.CategoryName,
                 CategoryDesciption = createDto.CategoryDesciption,
                 ParentCategoryId = createDto.ParentCategoryId,
@@ -94,6 +100,24 @@ namespace DoMinhGiaBao_SE1856_A01_Service.Services
         {
             var category = await _unitOfWork.Categories.GetByIdAsync(id);
             if (category == null) return null;
+
+            // Validate ParentCategoryId if provided
+            if (updateDto.ParentCategoryId.HasValue)
+            {
+                // Cannot set itself as parent
+                if (updateDto.ParentCategoryId.Value == id)
+                {
+                    throw new InvalidOperationException("Category cannot be its own parent");
+                }
+
+                var parentExists = await _unitOfWork.Categories
+                    .ExistsAsync(c => c.CategoryId == updateDto.ParentCategoryId.Value);
+                
+                if (!parentExists)
+                {
+                    throw new InvalidOperationException($"Parent category with ID {updateDto.ParentCategoryId.Value} does not exist");
+                }
+            }
 
             category.CategoryName = updateDto.CategoryName;
             category.CategoryDesciption = updateDto.CategoryDesciption;
