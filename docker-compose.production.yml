@@ -27,7 +27,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: DoMinhGiaBao_ SE1856_A01_BE/Dockerfile
+      dockerfile: PRN232.LAB.API/Dockerfile
     container_name: funews-api-prod
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
