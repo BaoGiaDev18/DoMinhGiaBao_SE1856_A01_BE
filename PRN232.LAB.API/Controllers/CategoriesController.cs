@@ -19,7 +19,6 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
     /// </summary>
     [ApiController]
     [Route("api/categories")]
-    [Authorize]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -38,7 +37,6 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// - Field Selection: ?fields=categoryId,categoryName
         /// Example: GET /api/categories?page=1&pageSize=10&sortBy=categoryName&sortOrder=asc&search=tech&status=active
         /// </summary>
-        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<PaginatedApiResponse<CategoryListResponse>>> GetAll(
             [FromQuery] CategoryQueryParameters queryParams)
@@ -109,6 +107,10 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
             ));
         }
 
+        /// <summary>
+        /// RESTful: POST /api/categories
+        /// </summary>
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CategoryResponse>>> Create([FromBody] CreateCategoryRequest request)
         {
@@ -140,6 +142,15 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                // Check if it's a duplicate error
+                if (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(ApiResponse<CategoryResponse>.ErrorResponse(
+                        "Category already exists",
+                        ex.Message
+                    ));
+                }
+                
                 return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
                     "Failed to create category",
                     ex.Message
@@ -147,6 +158,10 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
             }
         }
 
+        /// <summary>
+        /// RESTful: PUT /api/categories/{id}
+        /// </summary>
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<CategoryResponse>>> Update(short id, [FromBody] UpdateCategoryRequest request)
         {
@@ -182,6 +197,15 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                // Check if it's a duplicate error
+                if (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(ApiResponse<CategoryResponse>.ErrorResponse(
+                        "Category already exists",
+                        ex.Message
+                    ));
+                }
+                
                 return BadRequest(ApiResponse<CategoryResponse>.ErrorResponse(
                     "Failed to update category",
                     ex.Message
@@ -193,6 +217,7 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
         /// RESTful: DELETE /api/categories/{id}?validate=true
         /// S? d?ng query parameter 'validate' ?? ch? ki?m tra
         /// </summary>
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse>> Delete(short id, [FromQuery] bool validate = false)
         {
@@ -209,7 +234,7 @@ namespace DoMinhGiaBao__SE1856_A01_BE.Controllers
                 });
             }
 
-            // Th?c hi?n xóa
+            // Th?c hi?n xï¿½a
             try
             {
                 var result = await _categoryService.DeleteCategoryAsync(id);

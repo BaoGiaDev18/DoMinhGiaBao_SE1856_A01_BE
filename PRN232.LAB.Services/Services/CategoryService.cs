@@ -112,6 +112,15 @@ namespace PRN232.LAB.Services.Services
 
         public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto createDto)
         {
+            // Business Logic: Check if category name already exists (case-insensitive)
+            var existingCategories = await _unitOfWork.Categories
+                .FindAsync(c => c.CategoryName.ToLower() == createDto.CategoryName.ToLower());
+            
+            if (existingCategories.Any())
+            {
+                throw new InvalidOperationException($"Category with name '{createDto.CategoryName}' already exists");
+            }
+
             // Business Logic: Validate ParentCategoryId if provided
             if (createDto.ParentCategoryId.HasValue)
             {
@@ -138,6 +147,15 @@ namespace PRN232.LAB.Services.Services
         {
             var category = await _unitOfWork.Categories.GetByIdAsync(id);
             if (category == null) return null;
+
+            // Business Logic: Check if category name already exists for another category (case-insensitive)
+            var existingCategories = await _unitOfWork.Categories
+                .FindAsync(c => c.CategoryName.ToLower() == updateDto.CategoryName.ToLower() && c.CategoryId != id);
+            
+            if (existingCategories.Any())
+            {
+                throw new InvalidOperationException($"Category with name '{updateDto.CategoryName}' already exists");
+            }
 
             // Business Logic: Validate ParentCategoryId if provided
             if (updateDto.ParentCategoryId.HasValue)

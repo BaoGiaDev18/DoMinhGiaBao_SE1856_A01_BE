@@ -1,0 +1,448 @@
+{
+	"info": {
+		"_postman_id": "categories-api-final",
+		"name": "Categories API Tests - Final",
+		"description": "Clean test suite for Categories API - Only tests actual status codes (200, 201, 400, 409)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "01 - Auth - Login",
+			"request": {
+				"method": "POST",
+				"header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"EmmaWilliam@FUNewsManagement.org\",\n  \"password\": \"@1\"\n}"
+				},
+				"url": {"raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"]}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has access token', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.accessToken).to.be.a('string');",
+						"    pm.collectionVariables.set('accessToken', json.data.accessToken);",
+						"    pm.environment.set('accessToken', json.data.accessToken);",
+						"    console.log('Token saved:', json.data.accessToken);",
+						"});"
+					]
+				}
+			}]
+		},
+		{
+			"name": "02 - Get All Categories (Default)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {"raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"]}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "03 - Get Categories (Page 1, Size 5)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?page=1&pageSize=5",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "page", "value": "1"}, {"key": "pageSize", "value": "5"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Pagination correct', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.pagination.page).to.eql(1);",
+						"    pm.expect(json.pagination.pageSize).to.eql(5);",
+						"});"
+					]
+				}
+			}]
+		},
+		{
+			"name": "04 - Get Categories (Page 2, Size 3)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?page=2&pageSize=3",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "page", "value": "2"}, {"key": "pageSize", "value": "3"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Page is 2', () => pm.expect(pm.response.json().pagination.page).to.eql(2));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "05 - Get Categories (Search)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?searchName=news",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "searchName", "value": "news"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "06 - Get Categories (Sort Asc)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?sortBy=categoryName&sortOrder=asc",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "sortBy", "value": "categoryName"}, {"key": "sortOrder", "value": "asc"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "07 - Get Categories (Sort Desc)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?sortBy=categoryName&sortOrder=desc",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "sortBy", "value": "categoryName"}, {"key": "sortOrder", "value": "desc"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "08 - Get Categories (Search + Sort + Page)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?searchName=e&sortBy=categoryName&sortOrder=asc&page=1&pageSize=3",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [
+						{"key": "searchName", "value": "e"},
+						{"key": "sortBy", "value": "categoryName"},
+						{"key": "sortOrder", "value": "asc"},
+						{"key": "page", "value": "1"},
+						{"key": "pageSize", "value": "3"}
+					]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('All filters applied', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.pagination).to.exist;",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					]
+				}
+			}]
+		},
+		{
+			"name": "09 - Get Categories (Filter Active)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/categories?isActive=true",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories"],
+					"query": [{"key": "isActive", "value": "true"}]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "10 - Create Category (Success 201)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"categoryName\": \"Test Category {{$timestamp}}\",\n  \"categoryDesciption\": \"Auto test\",\n  \"isActive\": true\n}"
+				},
+				"url": {"raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"]}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+						"pm.test('Category created', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.categoryId).to.be.a('number');",
+						"    const categoryId = json.data.categoryId;",
+						"    pm.collectionVariables.set('testCategoryId', categoryId);",
+						"    pm.environment.set('testCategoryId', categoryId);",
+						"    console.log('Category ID saved:', categoryId);",
+						"});"
+					]
+				}
+			}]
+		},
+		{
+			"name": "11 - Create Category (Missing Field 400)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"categoryDesciption\": \"Missing name\"\n}"
+				},
+				"url": {"raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"]}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 400', () => pm.response.to.have.status(400));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "12 - Create Category (Duplicate 409)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"categoryName\": \"Academic news\",\n  \"categoryDesciption\": \"Duplicate\",\n  \"isActive\": true\n}"
+				},
+				"url": {"raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"]}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 409 or 400', () => pm.expect([409, 400]).to.include(pm.response.code));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "13 - Update Category (Success 200)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"categoryName\": \"Updated {{$timestamp}}\",\n  \"categoryDesciption\": \"Updated\",\n  \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "{{testCategoryId}}"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "14 - Update Category (Missing Fields 400)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "{{testCategoryId}}"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 400', () => pm.response.to.have.status(400));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "15 - Update Category (Duplicate 409)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"},
+					{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"categoryName\": \"Student Affairs\",\n  \"categoryDesciption\": \"Duplicate\",\n  \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "{{testCategoryId}}"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 409 or 400', () => pm.expect([409, 400]).to.include(pm.response.code));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "16 - Delete Category (Success 200)",
+			"request": {
+				"method": "DELETE",
+				"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+				"url": {
+					"raw": "{{baseUrl}}/categories/{{testCategoryId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "{{testCategoryId}}"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 200 or 204', () => pm.expect([200, 204]).to.include(pm.response.code));"
+					]
+				}
+			}]
+		},
+		{
+			"name": "17 - Delete Category (Invalid ID 400)",
+			"request": {
+				"method": "DELETE",
+				"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+				"url": {
+					"raw": "{{baseUrl}}/categories/abc",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "abc"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 400', () => pm.response.to.have.status(400));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		},
+		{
+			"name": "18 - Delete Category (Not Found 400)",
+			"request": {
+				"method": "DELETE",
+				"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+				"url": {
+					"raw": "{{baseUrl}}/categories/99999",
+					"host": ["{{baseUrl}}"],
+					"path": ["categories", "99999"]
+				}
+			},
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status code is 400', () => pm.response.to.have.status(400));",
+						"pm.test('Has error', () => pm.expect(pm.response.json().message || pm.response.json().errors).to.exist);"
+					]
+				}
+			}]
+		}
+	],
+	"variable": [
+		{"key": "baseUrl", "value": "http://localhost:5070/api", "type": "default"},
+		{"key": "accessToken", "value": "", "type": "secret"},
+		{"key": "testCategoryId", "value": "", "type": "default"}
+	]
+}
